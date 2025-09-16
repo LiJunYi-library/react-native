@@ -7,6 +7,7 @@ public class StartupViewController: UIViewController {
     // MARK: - Properties
     private var webView: WKWebView!
     private let margin: CGFloat = 20.0
+    private var customHtmlContent: String?
     
     // MARK: - Lifecycle
    public override func viewDidLoad() {
@@ -64,52 +65,8 @@ public class StartupViewController: UIViewController {
             webView.bottomAnchor.constraint(equalTo: popupView.bottomAnchor)
         ])
         
-        // 加载 HTML 字符串
-        let htmlContent = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>协议</title>
-            <style>
-                body { 
-                    font-family: -apple-system; 
-                    padding: 20px; 
-                    line-height: 1.6; 
-                }
-                button { 
-                    padding: 10px; 
-                    margin: 5px; 
-                    font-size: 16px; 
-                }
-            </style>
-        </head>
-        <body>
-            <h2>欢迎使用 App</h2>
-            <p>请阅读以下协议...</p>
-            <button onclick="nativeExitApp()">退出 App</button>
-            <button onclick="nativeOpenWeb()">打开网页</button>
-            <button onclick="nativeInitReactNative()">初始化 RN</button>
-
-            <script>
-                // 封装 JS 调用原生的方法
-                function nativeExitApp() {
-                    NativeBridge.exitApp()
-                }
-                
-                function nativeOpenWeb() {
-                    const url = 'https://expo.dev';
-                    NativeBridge.openWeb(url)
-                }
-                
-                function nativeInitReactNative() {
-                    NativeBridge.localStorageSet('userAgree', 'true')
-                    NativeBridge.initReactNative()
-                }
-            </script>
-        </body>
-        </html>
-        """
+        // 加载 HTML 字符串（使用自定义内容或默认内容）
+        let htmlContent = customHtmlContent ?? getDefaultHtmlContent()
         
         let injectedScript = """
             // NativeBridge 兼容层
@@ -202,21 +159,79 @@ extension StartupViewController {
         self.present(nav, animated: true)
     }
     
+    // 添加一个属性来存储 AppDelegate 的引用
+    private var appDelegate: AnyObject?
+    
+    // 设置 AppDelegate 的方法
+    public func setAppDelegate(_ delegate: AnyObject) {
+        self.appDelegate = delegate
+    }
+    
+    // 设置自定义 HTML 内容的方法
+    public func setCustomHtmlContent(_ htmlContent: String) {
+        self.customHtmlContent = htmlContent
+    }
+    
+    // 获取默认 HTML 内容的方法
+    private func getDefaultHtmlContent() -> String {
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>协议</title>
+            <style>
+                body { 
+                    font-family: -apple-system; 
+                    padding: 20px; 
+                    line-height: 1.6; 
+                }
+                button { 
+                    padding: 10px; 
+                    margin: 5px; 
+                    font-size: 16px; 
+                }
+            </style>
+        </head>
+        <body>
+            <h2>欢迎使用 App</h2>
+            <p>请阅读以下协议...</p>
+            <button onclick="nativeExitApp()">退出 App</button>
+            <button onclick="nativeOpenWeb()">打开网页</button>
+            <button onclick="nativeInitReactNative()">初始化 RN</button>
+
+            <script>
+                // 封装 JS 调用原生的方法
+                function nativeExitApp() {
+                    NativeBridge.exitApp()
+                }
+                
+                function nativeOpenWeb() {
+                    const url = 'https://expo.dev';
+                    NativeBridge.openWeb(url)
+                }
+                
+                function nativeInitReactNative() {
+                    NativeBridge.localStorageSet('userAgree', 'true')
+                    NativeBridge.initReactNative()
+                }
+            </script>
+        </body>
+        </html>
+        """
+    }
+    
     private func initReactNative() {
-        // 通过反射调用 AppDelegate 的 initReactNativeFactory 方法
-        if let appDelegate = UIApplication.shared.delegate {
-            let mirror = Mirror(reflecting: appDelegate)
-            if let initMethod = mirror.children.first(where: { $0.label == "initReactNativeFactory" }) {
-                // 如果找到了方法，尝试调用
-                if let method = initMethod.value as? () -> Void {
-                    method()
-                }
+        // 使用 performSelector 调用 AppDelegate 的 initReactNativeFactory 方法
+        if let delegate = appDelegate {
+            if delegate.responds(to: NSSelectorFromString("initReactNativeFactory")) {
+                delegate.perform(NSSelectorFromString("initReactNativeFactory"))
+                print("✅ Successfully called initReactNativeFactory")
             } else {
-                // 使用 performSelector 作为备用方案
-                if appDelegate.responds(to: NSSelectorFromString("initReactNativeFactory")) {
-                    appDelegate.perform(NSSelectorFromString("initReactNativeFactory"))
-                }
+                print("❌ AppDelegate does not respond to initReactNativeFactory")
             }
+        } else {
+            print("❌ AppDelegate not set")
         }
     }
     

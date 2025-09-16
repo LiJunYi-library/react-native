@@ -37,6 +37,7 @@ public class AppDelegate: ExpoAppDelegate {
   func initStartupViewController() {
     window = UIWindow(frame: UIScreen.main.bounds)
     let startViewController = StartupViewController()
+    startViewController.setAppDelegate(self)
     navigationController = UINavigationController(rootViewController: startViewController)
     navigationController?.isNavigationBarHidden = true 
     window?.rootViewController = navigationController
