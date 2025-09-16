@@ -28,15 +28,15 @@ public class AppDelegate: ExpoAppDelegate {
       initReactNativeFactory(launchOptions: launchOptions)
       initNotAgreeSdks();
     } else {
-      initStartViewController()
+      initStartupViewController()
     }
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
-  func initStartViewController() {
+  func initStartupViewController() {
     window = UIWindow(frame: UIScreen.main.bounds)
-    let startViewController = StartViewController()
+    let startViewController = StartupViewController()
     navigationController = UINavigationController(rootViewController: startViewController)
     navigationController?.isNavigationBarHidden = true 
     window?.rootViewController = navigationController

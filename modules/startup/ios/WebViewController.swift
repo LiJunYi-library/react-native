@@ -92,18 +92,18 @@ public class WebViewController: UIViewController {
 
 // MARK: - WKNavigationDelegate
 extension WebViewController: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+    public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         // 开始加载时显示加载指示器
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
     }
     
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         // 加载完成时隐藏加载指示器
         UIApplication.shared.isNetworkActivityIndicatorVisible = false
         title = webView.title ?? "网页浏览"
     }
     
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+    public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         // 加载失败时隐藏加载指示器并显示错误
         UIApplication.shared.isNetworkActivityIndicatorVisible = false
         showErrorAlert(message: "网页加载失败: \(error.localizedDescription)")

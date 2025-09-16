@@ -153,7 +153,7 @@ func injectScriptIntoHTML(_ html: String, script: String) -> String {
 
 // MARK: - WKScriptMessageHandler
 extension StartupViewController: WKScriptMessageHandler {
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         switch message.name {
         case "exitApp":
             exitApp()
