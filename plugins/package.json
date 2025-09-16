@@ -2,10 +2,15 @@
   "name": "@rainbow_ljy/react-native-plugins",
   "version": "1.0.0",
   "description": "",
+  "private": false,
+  "type": "module",
   "license": "ISC",
   "author": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@expo/config-plugins": "^8.0.0"
   }
 }
