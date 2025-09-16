@@ -21,13 +21,13 @@
     "@rainbow_ljy/react-native-startup",
     "Startup"
   ],
-  "repository": "https://github.com/LiJunYi-library/react-native/modules/startup",
+  "repository": "https://github.com/LiJunYi-library/react-native/tree/main/modules/startup",
   "bugs": {
-    "url": "https://github.com/LiJunYi-library/react-native/modules/startup/issues"
+    "url": "https://github.com/LiJunYi-library/react-native/tree/main/modules/startup/issues"
   },
   "author": "LiJunYi <39401717+LiJunYi-library@users.noreply.github.com> (https://github.com/LiJunYi-library)",
   "license": "MIT",
-  "homepage": "https://github.com/LiJunYi-library/react-native/modules/startup#readme",
+  "homepage": "https://github.com/LiJunYi-library/react-native/tree/main/modules/startup#readme",
   "dependencies": {},
   "devDependencies": {
     "@types/react": "~19.1.0",

@@ -1,6 +1,7 @@
 import Expo
 import React
 import ReactAppDependencyProvider
+import Startup
 
 @UIApplicationMain
 public class AppDelegate: ExpoAppDelegate {
