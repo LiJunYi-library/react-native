@@ -6,7 +6,7 @@ public class WebViewController: UIViewController {
     var urlString: String = ""
     private var webView: WKWebView!
     
-    override func viewDidLoad() {
+  public  override func viewDidLoad() {
         super.viewDidLoad()
         setupWebView()
         setupNavigationBar()
@@ -106,6 +106,6 @@ extension WebViewController: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         // 加载失败时隐藏加载指示器并显示错误
         UIApplication.shared.isNetworkActivityIndicatorVisible = false
-        showErrorAlert(message: "网页加载失败: \(error.localizedDescription)")
+        showErrorAlert(message: "网页加载失败了: \(error.localizedDescription)")
     }
 }

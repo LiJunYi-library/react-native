@@ -9,7 +9,7 @@ public class StartupViewController: UIViewController {
     private let margin: CGFloat = 20.0
     
     // MARK: - Lifecycle
-    override func viewDidLoad() {
+   public override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
         showCustomAlert()
@@ -203,8 +203,20 @@ extension StartupViewController {
     }
     
     private func initReactNative() {
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-            appDelegate.initReactNativeFactory()
+        // 通过反射调用 AppDelegate 的 initReactNativeFactory 方法
+        if let appDelegate = UIApplication.shared.delegate {
+            let mirror = Mirror(reflecting: appDelegate)
+            if let initMethod = mirror.children.first(where: { $0.label == "initReactNativeFactory" }) {
+                // 如果找到了方法，尝试调用
+                if let method = initMethod.value as? () -> Void {
+                    method()
+                }
+            } else {
+                // 使用 performSelector 作为备用方案
+                if appDelegate.responds(to: NSSelectorFromString("initReactNativeFactory")) {
+                    appDelegate.perform(NSSelectorFromString("initReactNativeFactory"))
+                }
+            }
         }
     }
     
