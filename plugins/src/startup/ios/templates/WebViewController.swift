@@ -1,7 +1,7 @@
 import UIKit
 import WebKit
 
-class WebViewController: UIViewController {
+public class WebViewController: UIViewController {
     
     var urlString: String = ""
     private var webView: WKWebView!

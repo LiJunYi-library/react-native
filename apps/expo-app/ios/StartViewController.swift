@@ -2,7 +2,7 @@
 import UIKit
 import WebKit
 
-public class StartViewController: UIViewController {
+class StartViewController: UIViewController {
     
     // MARK: - Properties
     private var webView: WKWebView!

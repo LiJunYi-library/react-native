@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["StartupModule"]
+  },
+  "android": {
+    "modules": ["com.rainbow.startup.StartupModule"]
+  }
+}
