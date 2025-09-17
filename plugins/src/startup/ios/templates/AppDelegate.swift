@@ -24,12 +24,11 @@ public class AppDelegate: ExpoAppDelegate {
     print("用户同意隐私协议：\(userAgree ?? "nil")")
     
     if userAgree == "true" {
-      // 用户已同意，直接启动React Native
-      initReactNativeFactory(launchOptions: launchOptions)
       initAgreeSdks();
-    } else if userAgree == "false" {
       initReactNativeFactory(launchOptions: launchOptions)
+    } else if userAgree == "false" {
       initNotAgreeSdks();
+      initReactNativeFactory(launchOptions: launchOptions)
     } else {
       initStartupViewController()
     }
@@ -57,8 +56,12 @@ public class AppDelegate: ExpoAppDelegate {
 
     #if os(iOS) || os(tvOS)
         window = UIWindow(frame: UIScreen.main.bounds)
+        
+        let userAgree = UserDefaults.standard.string(forKey: "userAgree")
+        let moduleName = (userAgree == "true") ? "main" : "limited"
+        
         factory.startReactNative(
-          withModuleName: "main",
+          withModuleName: moduleName,
           in: window,
           launchOptions: launchOptions)
     #endif

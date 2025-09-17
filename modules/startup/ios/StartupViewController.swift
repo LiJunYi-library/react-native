@@ -196,7 +196,8 @@ extension StartupViewController {
             <p>请阅读以下协议...</p>
             <button onclick="nativeExitApp()">退出 App</button>
             <button onclick="nativeOpenWeb()">打开网页</button>
-            <button onclick="nativeInitReactNative()">初始化 RN</button>
+             <button onclick="nativeInitEasyReactNative()">初始化阉割版RN</button>
+            <button onclick="nativeInitReactNative()">初始化RN</button>
 
             <script>
                 // 封装 JS 调用原生的方法
@@ -207,6 +208,11 @@ extension StartupViewController {
                 function nativeOpenWeb() {
                     const url = 'https://expo.dev';
                     NativeBridge.openWeb(url)
+                }
+
+                function nativeInitEasyReactNative() {
+                    NativeBridge.localStorageSet('userAgree', 'false')
+                    NativeBridge.initEasyReactNative()
                 }
                 
                 function nativeInitReactNative() {
