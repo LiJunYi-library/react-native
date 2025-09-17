@@ -44,7 +44,7 @@ public class AppDelegate: ExpoAppDelegate {
     window?.makeKeyAndVisible()
   }
 
-  func initReactNativeFactory(launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) {
+  @objc public func initReactNativeFactory(launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) {
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

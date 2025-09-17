@@ -6,7 +6,7 @@ public class WebViewController: UIViewController {
     var urlString: String = ""
     private var webView: WKWebView!
     
-  public  override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
         setupWebView()
         setupNavigationBar()

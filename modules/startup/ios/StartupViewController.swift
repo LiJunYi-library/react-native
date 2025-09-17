@@ -8,9 +8,10 @@ public class StartupViewController: UIViewController {
     private var webView: WKWebView!
     private let margin: CGFloat = 20.0
     private var customHtmlContent: String?
+    private var appDelegate: AnyObject?
     
     // MARK: - Lifecycle
-   public override func viewDidLoad() {
+    public override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
         showCustomAlert()
@@ -159,9 +160,6 @@ extension StartupViewController {
         self.present(nav, animated: true)
     }
     
-    // 添加一个属性来存储 AppDelegate 的引用
-    private var appDelegate: AnyObject?
-    
     // 设置 AppDelegate 的方法
     public func setAppDelegate(_ delegate: AnyObject) {
         self.appDelegate = delegate
@@ -223,15 +221,40 @@ extension StartupViewController {
     
     private func initReactNative() {
         // 使用 performSelector 调用 AppDelegate 的 initReactNativeFactory 方法
-        if let delegate = appDelegate {
-            if delegate.responds(to: NSSelectorFromString("initReactNativeFactory")) {
-                delegate.perform(NSSelectorFromString("initReactNativeFactory"))
-                print("✅ Successfully called initReactNativeFactory")
-            } else {
-                print("❌ AppDelegate does not respond to initReactNativeFactory")
+        guard let delegate = appDelegate else {
+            print("❌ AppDelegate not set")
+            return
+        }
+        
+        // 尝试调用无参数版本的 initReactNativeFactory
+        let selector = NSSelectorFromString("initReactNativeFactory")
+        if delegate.responds(to: selector) {
+            delegate.perform(selector)
+            print("✅ Successfully called initReactNativeFactory")
+            
+            // 关闭当前页面
+            DispatchQueue.main.async { [weak self] in
+                self?.dismiss(animated: true) {
+                    print("✅ StartupViewController dismissed")
+                }
             }
         } else {
-            print("❌ AppDelegate not set")
+            print("❌ AppDelegate does not respond to initReactNativeFactory")
+            print("💡 Available methods: \(delegate.responds(to: NSSelectorFromString("initReactNativeFactoryWithLaunchOptions:")) ? "initReactNativeFactoryWithLaunchOptions:" : "none")")
+            
+            // 尝试调用带参数版本
+            let selectorWithParams = NSSelectorFromString("initReactNativeFactoryWithLaunchOptions:")
+            if delegate.responds(to: selectorWithParams) {
+                delegate.perform(selectorWithParams, with: nil)
+                print("✅ Successfully called initReactNativeFactoryWithLaunchOptions:")
+                
+                // 关闭当前页面
+                DispatchQueue.main.async { [weak self] in
+                    self?.dismiss(animated: true) {
+                        print("✅ StartupViewController dismissed")
+                    }
+                }
+            }
         }
     }
     
