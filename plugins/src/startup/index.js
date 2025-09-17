@@ -86,6 +86,11 @@ function getAppDelegateContent(config = {}, options = {}) {
     }
   }
 
+  const moduleName = options.moduleName || 'main';
+
+  const limitedModuleName = options.limitedModuleName || 'limited';
+
+
   return `
   import Expo
 import React
@@ -110,7 +115,6 @@ public class AppDelegate: ExpoAppDelegate {
     // 检查用户是否已经同意
     let localStorage = UserDefaults.standard
     let userAgree = localStorage.string(forKey: "userAgree")
-    print("用户同意隐私协议：\(userAgree ?? "nil")")
     
     if userAgree == "true" {
       initAgreeSdks();
@@ -148,8 +152,9 @@ public class AppDelegate: ExpoAppDelegate {
         window = UIWindow(frame: UIScreen.main.bounds)
         
         let userAgree = UserDefaults.standard.string(forKey: "userAgree")
-        let moduleName = (userAgree == "true") ? "main" : "limited"
+        let moduleName = (userAgree == "true") ? "${moduleName}" : "${limitedModuleName}"
         print("✅ startReactNative withModuleName: \(moduleName)")
+        print(moduleName)
         factory.startReactNative(
           withModuleName: moduleName,
           in: window,
