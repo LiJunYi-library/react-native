@@ -15,6 +15,9 @@ public class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    // 保存 launchOptions 供后续使用
+    self.launchOptions = launchOptions
+    
     // 检查用户是否已经同意
     let localStorage = UserDefaults.standard
     let userAgree = localStorage.string(forKey: "userAgree")
@@ -60,6 +63,16 @@ public class AppDelegate: ExpoAppDelegate {
           launchOptions: launchOptions)
     #endif
   }
+  
+  // 专门为 performSelector 调用的无参数方法
+  @objc public func initReactNative() {
+    // 尝试获取当前的 launchOptions，如果没有则使用 nil
+    let currentLaunchOptions = self.launchOptions ?? nil
+    initReactNativeFactory(launchOptions: currentLaunchOptions)
+  }
+  
+  // 存储原始的 launchOptions
+  private var launchOptions: [UIApplication.LaunchOptionsKey: Any]?
 
   // Linking API
   public override func application(

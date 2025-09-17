@@ -220,17 +220,16 @@ extension StartupViewController {
     }
     
     private func initReactNative() {
-        // 使用 performSelector 调用 AppDelegate 的 initReactNativeFactory 方法
+        // 使用 performSelector 调用 AppDelegate 的 initReactNative 方法
         guard let delegate = appDelegate else {
             print("❌ AppDelegate not set")
             return
         }
         
-        // 尝试调用无参数版本的 initReactNativeFactory
-        let selector = NSSelectorFromString("initReactNativeFactory")
+        let selector = NSSelectorFromString("initReactNative")
         if delegate.responds(to: selector) {
             delegate.perform(selector)
-            print("✅ Successfully called initReactNativeFactory")
+            print("✅ Successfully called initReactNative")
             
             // 关闭当前页面
             DispatchQueue.main.async { [weak self] in
@@ -239,22 +238,8 @@ extension StartupViewController {
                 }
             }
         } else {
-            print("❌ AppDelegate does not respond to initReactNativeFactory")
-            print("💡 Available methods: \(delegate.responds(to: NSSelectorFromString("initReactNativeFactoryWithLaunchOptions:")) ? "initReactNativeFactoryWithLaunchOptions:" : "none")")
-            
-            // 尝试调用带参数版本
-            let selectorWithParams = NSSelectorFromString("initReactNativeFactoryWithLaunchOptions:")
-            if delegate.responds(to: selectorWithParams) {
-                delegate.perform(selectorWithParams, with: nil)
-                print("✅ Successfully called initReactNativeFactoryWithLaunchOptions:")
-                
-                // 关闭当前页面
-                DispatchQueue.main.async { [weak self] in
-                    self?.dismiss(animated: true) {
-                        print("✅ StartupViewController dismissed")
-                    }
-                }
-            }
+            print("❌ AppDelegate does not respond to initReactNative")
+            print("💡 Make sure initReactNative method is declared as @objc public in AppDelegate")
         }
     }
     
