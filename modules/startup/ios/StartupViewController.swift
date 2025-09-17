@@ -212,7 +212,7 @@ extension StartupViewController {
 
                 function nativeInitEasyReactNative() {
                     NativeBridge.localStorageSet('userAgree', 'false')
-                    NativeBridge.initEasyReactNative()
+                    NativeBridge.initReactNative()
                 }
                 
                 function nativeInitReactNative() {
