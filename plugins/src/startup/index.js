@@ -1,95 +1,90 @@
-
-import expoConfigPlugins from '@expo/config-plugins';
+import expoConfigPlugins from "@expo/config-plugins";
 const { withDangerousMod, WarningAggregator } = expoConfigPlugins;
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-// 获取当前文件的目录路径
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
 export function withCustomAppDelegate(config, options = {}) {
-  console.log('处理自定义AppDelegate');
-  console.log('插件选项:', options);
-  
-  return withDangerousMod(config, ['ios', async (config) => {
-    console.log('开始覆盖 AppDelegate.swift 文件');
-    
-    // 动态获取 app 名称
-    const appName = config.name || 'expoapp';
-    console.log('App 名称:', appName);
-    
-    try {
-      const templateFilePath = join(__dirname, 'ios', 'templates', 'AppDelegate.swift');
-      const targetFilePath = join(
-        config.modRequest.platformProjectRoot,
-        appName,
-        'AppDelegate.swift'
-      );
+  console.log("处理自定义AppDelegate");
+  console.log("插件选项:", options);
 
-      console.log(`模板路径: ${templateFilePath}`);
-      console.log(`目标路径: ${targetFilePath}`);
+  return withDangerousMod(config, [
+    "ios",
+    async (config) => {
+      console.log("开始覆盖 AppDelegate.swift 文件");
 
-      // 检查模板文件是否存在
-      if (!existsSync(templateFilePath)) {
-        throw new Error(`Template AppDelegate.swift not found at: ${templateFilePath}`);
+      // 动态获取 app 名称
+      const appName = config.name || "expoapp";
+      console.log("App 名称:", appName);
+
+      try {
+        const targetFilePath = join(
+          config.modRequest.platformProjectRoot,
+          appName,
+          "AppDelegate.swift"
+        );
+
+        console.log(`目标路径: ${targetFilePath}`);
+
+        // 读取模板文件内容
+        const contents = getAppDelegateContent(config, options);
+
+        // 写入到原生项目，覆盖原有文件
+        writeFileSync(targetFilePath, contents, "utf-8");
+
+        console.log("✅ Successfully replaced AppDelegate.swift");
+      } catch (error) {
+        console.error("❌ Failed to replace AppDelegate.swift:", error.message);
+        WarningAggregator.addWarningIOS(
+          "withCustomAppDelegate",
+          `Failed to replace AppDelegate.swift: ${error.message}`
+        );
       }
 
-      // 读取模板文件内容
-      const contents = getAppDelegateContent(config, options)
-
-      // 写入到原生项目，覆盖原有文件
-      writeFileSync(targetFilePath, contents, 'utf-8');
-
-      console.log('✅ Successfully replaced AppDelegate.swift');
-    } catch (error) {
-      console.error('❌ Failed to replace AppDelegate.swift:', error.message);
-      WarningAggregator.addWarningIOS(
-        'withCustomAppDelegate',
-        `Failed to replace AppDelegate.swift: ${error.message}`
-      );
-    }
-
-    return config;
-  }]);
+      return config;
+    },
+  ]);
 }
 
 function getAppDelegateContent(config = {}, options = {}) {
   // 处理 HTML 内容
-  let htmlContent = '';
-  
+  let htmlContent = "";
+
   if (options.customHtmlContent) {
     // 直接使用传入的 HTML 内容
-    htmlContent = options.customHtmlContent.replace(/"/g, '\\"').replace(/\n/g, '\\n');
-    console.log('使用自定义 HTML 内容');
+    htmlContent = options.customHtmlContent
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, "\\n");
+    console.log("使用自定义 HTML 内容");
   } else if (options.customHtmlUrl) {
     // 从指定路径读取 HTML 文件
     const htmlPath = options.customHtmlUrl;
     if (existsSync(htmlPath)) {
-      const htmlFileContent = readFileSync(htmlPath, 'utf-8');
-      htmlContent = htmlFileContent.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const htmlFileContent = readFileSync(htmlPath, "utf-8");
+      htmlContent = htmlFileContent.replace(/"/g, '\\"').replace(/\n/g, "\\n");
       console.log(`从文件读取 HTML 内容: ${htmlPath}`);
     } else {
       console.warn(`HTML 文件不存在: ${htmlPath}`);
     }
   } else {
     // 使用默认的 HTML 文件路径
-    const defaultHtmlPath = join(config.modRequest.projectRoot, 'assets', 'html', 'privacyAgreement.html');
+    const defaultHtmlPath = join(
+      config.modRequest.projectRoot,
+      "assets",
+      "html",
+      "privacyAgreement.html"
+    );
     if (existsSync(defaultHtmlPath)) {
-      const htmlFileContent = readFileSync(defaultHtmlPath, 'utf-8');
-      htmlContent = htmlFileContent.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const htmlFileContent = readFileSync(defaultHtmlPath, "utf-8");
+      htmlContent = htmlFileContent.replace(/"/g, '\\"').replace(/\n/g, "\\n");
       console.log(`使用默认 HTML 文件: ${defaultHtmlPath}`);
     } else {
       console.warn(`默认 HTML 文件不存在: ${defaultHtmlPath}`);
     }
   }
 
-  const moduleName = options.moduleName || 'main';
+  const moduleName = options.moduleName || "main";
 
-  const limitedModuleName = options.limitedModuleName || 'limited';
-
+  const limitedModuleName = options.limitedModuleName || "limited";
 
   return `
   import Expo
@@ -133,7 +128,11 @@ public class AppDelegate: ExpoAppDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
     let startViewController = StartupViewController()
     startViewController.setAppDelegate(self)
-    ${htmlContent ? `startViewController.setCustomHtmlContent("${htmlContent}")` : ''}
+    ${
+      htmlContent
+        ? `startViewController.setCustomHtmlContent("${htmlContent}")`
+        : ""
+    }
     navigationController = UINavigationController(rootViewController: startViewController)
     navigationController?.isNavigationBarHidden = true 
     window?.rootViewController = navigationController
