@@ -3,4 +3,4 @@ export interface ExpoConfig {
   [key: string]: any;
 }
 
-export declare function withCustomAppDelegate(config: ExpoConfig): ExpoConfig;
+export declare function withStartup(config: ExpoConfig): ExpoConfig;

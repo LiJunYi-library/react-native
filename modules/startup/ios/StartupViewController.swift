@@ -13,40 +13,24 @@ public class StartupViewController: UIViewController {
     // MARK: - Lifecycle
     public override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
-        showCustomAlert()
+        setupWebView()
+    }
+    
+    public override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // 隐藏导航栏，实现全屏效果
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+    
+    public override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // 恢复导航栏
+        navigationController?.setNavigationBarHidden(false, animated: animated)
     }
     
     // MARK: - Private Methods
-    private func showCustomAlert() {
-        // 创建半透明背景
-        let overlay = UIView()
-        overlay.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-        overlay.frame = view.bounds
-        view.addSubview(overlay)
-        
-        // 弹窗宽度 = 屏宽 - 40 (左右各20)
-        let screenWidth = view.bounds.width
-        let popupWidth = screenWidth - 2 * margin
-        let popupHeight = view.bounds.height * 0.6
-        
-        let popupView = UIView()
-        popupView.backgroundColor = .white
-        popupView.layer.cornerRadius = 12
-        popupView.translatesAutoresizingMaskIntoConstraints = false
-        
-        // 添加到 overlay（防止被键盘顶起）
-        overlay.addSubview(popupView)
-        
-        // Auto Layout
-        NSLayoutConstraint.activate([
-            popupView.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            popupView.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
-            popupView.widthAnchor.constraint(equalToConstant: popupWidth),
-            popupView.heightAnchor.constraint(equalToConstant: popupHeight)
-        ])
-        
-        // 创建 WKWebView
+    private func setupWebView() {
+        // 创建 WKWebView 配置
         let webConfiguration = WKWebViewConfiguration()
         
         // 设置 message handler，用于 JS 调用原生
@@ -54,22 +38,44 @@ public class StartupViewController: UIViewController {
         webConfiguration.userContentController.add(self, name: "openWeb")
         webConfiguration.userContentController.add(self, name: "initReactNative")
         webConfiguration.userContentController.add(self, name: "localStorageSet")
+        webConfiguration.userContentController.add(self, name: "localStorageGet")
+        webConfiguration.userContentController.add(self, name: "localStorageRemove")
+        webConfiguration.userContentController.add(self, name: "localStorageClear")
+        webConfiguration.userContentController.add(self, name: "getStateBarHeight")
         
+        // 创建全屏 WebView
         webView = WKWebView(frame: .zero, configuration: webConfiguration)
         webView.translatesAutoresizingMaskIntoConstraints = false
-        popupView.addSubview(webView)
+        webView.navigationDelegate = self
         
+        // 添加到主视图
+        view.addSubview(webView)
+        
+        // 设置全屏约束
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: popupView.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: popupView.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: popupView.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: popupView.bottomAnchor)
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
         
+        // 加载 HTML 内容
+        loadWebContent()
+    }
+    
+    private func loadWebContent() {
         // 加载 HTML 字符串（使用自定义内容或默认内容）
         let htmlContent = customHtmlContent ?? getDefaultHtmlContent()
         
         let injectedScript = """
+            // 生成唯一事件ID的工具函数
+            function generateEventId() {
+                return 'event_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            // 事件回调存储
+            window._nativeCallbacks = {};
+            
             // NativeBridge 兼容层
             window.NativeBridge = {
                 exitApp: () => {
@@ -86,6 +92,37 @@ public class StartupViewController: UIViewController {
                         key: key,
                         value: value
                     });
+                },
+                localStorageGet: (key, callback) => {
+                    const eventId = generateEventId();
+                    window._nativeCallbacks[eventId] = callback;
+                    window.webkit?.messageHandlers?.localStorageGet?.postMessage({
+                        key: key,
+                        eventId: eventId
+                    });
+                },
+                localStorageRemove: (key) => {
+                    window.webkit?.messageHandlers?.localStorageRemove?.postMessage({
+                        key: key
+                    });
+                },
+                localStorageClear: () => {
+                    window.webkit?.messageHandlers?.localStorageClear?.postMessage(null);
+                },
+                getStateBarHeight: (callback) => {
+                    const eventId = generateEventId();
+                    window._nativeCallbacks[eventId] = callback;
+                    window.webkit?.messageHandlers?.getStateBarHeight?.postMessage({
+                        eventId: eventId
+                    });
+                }
+            };
+            
+            // 事件回调处理函数
+            window.onNativeEventReceived = (eventId, data) => {
+                if (window._nativeCallbacks[eventId]) {
+                    window._nativeCallbacks[eventId](data);
+                    delete window._nativeCallbacks[eventId];
                 }
             };
         """
@@ -106,6 +143,14 @@ func injectScriptIntoHTML(_ html: String, script: String) -> String {
     } else {
         // 没有 <head>，插入到 <body> 前或开头
         return scriptTag + "\n" + html
+    }
+}
+
+// MARK: - WKNavigationDelegate
+extension StartupViewController: WKNavigationDelegate {
+    public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        // 允许所有导航
+        decisionHandler(.allow)
     }
 }
 
@@ -133,6 +178,48 @@ extension StartupViewController: WKScriptMessageHandler {
             } else {
                 print("localStorageSet: 无效的参数格式")
             }
+
+        case "localStorageGet":
+            if let data = message.body as? [String: Any],
+               let key = data["key"] as? String,
+               let eventId = data["eventId"] as? String {
+                let value = localStorageGet(key: key)
+                // 通过 evaluateJavaScript 将结果返回给 JavaScript
+                webView.evaluateJavaScript("""
+                    window.onNativeEventReceived('\(eventId)', {
+                        key: '\(key)',
+                        value: '\(value)'
+                    });
+                """)
+            } else {
+                print("localStorageGet: 无效的参数格式")
+            }
+
+        case "localStorageRemove":
+            if let data = message.body as? [String: Any],
+               let key = data["key"] as? String {
+                localStorageRemove(key: key)
+            } else {
+                print("localStorageRemove: 无效的参数格式")
+            }
+
+        case "localStorageClear":
+            localStorageClear()
+
+        case "getStateBarHeight":
+            if let data = message.body as? [String: Any],
+               let eventId = data["eventId"] as? String {
+                let height = getStateBarHeight()
+                // 通过 evaluateJavaScript 将结果返回给 JavaScript
+                webView.evaluateJavaScript("""
+                    window.onNativeEventReceived('\(eventId)', {
+                        height: \(height)
+                    });
+                """)
+            } else {
+                print("getStateBarHeight: 无效的参数格式")
+            }
+     
             
         default:
             print("未知消息: \(message.name)")
@@ -182,24 +269,92 @@ extension StartupViewController {
                 body { 
                     font-family: -apple-system; 
                     padding: 20px; 
-                    line-height: 1.6; 
+                    line-height: 1.6;
+                    margin: 0;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    color: white;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                h2 {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    font-size: 28px;
+                }
+                .button-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                    margin-top: 30px;
                 }
                 button { 
-                    padding: 10px; 
-                    margin: 5px; 
-                    font-size: 16px; 
+                    padding: 15px 20px; 
+                    font-size: 16px;
+                    border: none;
+                    border-radius: 8px;
+                    background: rgba(255, 255, 255, 0.2);
+                    color: white;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    backdrop-filter: blur(10px);
+                }
+                button:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: translateY(-2px);
+                }
+                .back-button {
+                    position: fixed;
+                    top: 20px;
+                    left: 20px;
+                    background: rgba(0, 0, 0, 0.5);
+                    padding: 10px 15px;
+                    border-radius: 20px;
+                    font-size: 14px;
+                }
+                .status-info {
+                    background: rgba(255, 255, 255, 0.1);
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                    backdrop-filter: blur(10px);
                 }
             </style>
         </head>
         <body>
-            <h2>欢迎使用 App</h2>
-            <p>请阅读以下协议...</p>
-            <button onclick="nativeExitApp()">退出 App</button>
-            <button onclick="nativeOpenWeb()">打开网页</button>
-             <button onclick="nativeInitEasyReactNative()">初始化阉割版RN</button>
-            <button onclick="nativeInitReactNative()">初始化RN</button>
+            <button class="back-button" onclick="goBack()">← 返回</button>
+            
+            <div class="container">
+                <h2>欢迎使用 App</h2>
+                
+                <div class="status-info">
+                    <p>请阅读以下协议并选择您的操作...</p>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="nativeInitReactNative()">✅ 同意并初始化RN</button>
+                    <button onclick="nativeInitEasyReactNative()">⚠️ 不同意但继续</button>
+                    <button onclick="nativeOpenWeb()">🌐 打开网页</button>
+                    <button onclick="getStatusBarHeight()">📏 获取状态栏高度</button>
+                    <button onclick="getUserAgreeStatus()">📋 查看用户同意状态</button>
+                    <button onclick="nativeExitApp()">❌ 退出 App</button>
+                </div>
+            </div>
 
             <script>
+                // 回退功能
+                function goBack() {
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        // 如果没有历史记录，可以调用原生方法
+                        console.log('没有历史记录可回退');
+                    }
+                }
+                
                 // 封装 JS 调用原生的方法
                 function nativeExitApp() {
                     NativeBridge.exitApp()
@@ -218,6 +373,22 @@ extension StartupViewController {
                 function nativeInitReactNative() {
                     NativeBridge.localStorageSet('userAgree', 'true')
                     NativeBridge.initReactNative()
+                }
+                
+                // 示例：使用 eventId 获取状态栏高度
+                function getStatusBarHeight() {
+                    NativeBridge.getStateBarHeight((data) => {
+                        console.log('状态栏高度:', data.height);
+                        alert('状态栏高度: ' + data.height + 'px');
+                    });
+                }
+                
+                // 示例：使用 eventId 获取 localStorage 值
+                function getUserAgreeStatus() {
+                    NativeBridge.localStorageGet('userAgree', (data) => {
+                        console.log('用户同意状态:', data.key, data.value);
+                        alert('用户同意状态: ' + data.value);
+                    });
                 }
             </script>
         </body>
@@ -239,8 +410,12 @@ extension StartupViewController {
             
             // 关闭当前页面
             DispatchQueue.main.async { [weak self] in
-                self?.dismiss(animated: true) {
-                    print("✅ StartupViewController dismissed")
+                if let navigationController = self?.navigationController {
+                    navigationController.popViewController(animated: true)
+                } else {
+                    self?.dismiss(animated: true) {
+                        print("✅ StartupViewController dismissed")
+                    }
                 }
             }
         } else {
@@ -249,9 +424,67 @@ extension StartupViewController {
         }
     }
     
+    // 添加回退功能
+    public override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+        // 添加手势识别器支持回退
+        let swipeGesture = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeGesture(_:)))
+        swipeGesture.direction = .right
+        view.addGestureRecognizer(swipeGesture)
+    }
+    
+    @objc private func handleSwipeGesture(_ gesture: UISwipeGestureRecognizer) {
+        if gesture.direction == .right {
+            goBack()
+        }
+    }
+    
+    private func goBack() {
+        if webView.canGoBack {
+            webView.goBack()
+        } else {
+            // 如果没有历史记录，则关闭当前页面
+            if let navigationController = navigationController {
+                navigationController.popViewController(animated: true)
+            } else {
+                dismiss(animated: true)
+            }
+        }
+    }
+    
     private func localStorageSet(key: String, value: String) {
         let localStorage = UserDefaults.standard
         localStorage.set(value, forKey: key)
         print("localStorageSet: \(key) = \(value)")
+    }
+
+    private func localStorageGet(key: String) -> String {
+        let localStorage = UserDefaults.standard
+        return localStorage.string(forKey: key) ?? ""
+    }   
+
+    private func localStorageRemove(key: String) {
+        let localStorage = UserDefaults.standard
+        localStorage.removeObject(forKey: key)
+        print("localStorageRemove: \(key)")
+    }
+
+    private func localStorageClear() {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+        }
+        print("localStorageClear")  
+    }
+
+    private func getStateBarHeight() -> Int {
+        if #available(iOS 13.0, *) {
+            // iOS 13+ 使用新的 API
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                return Int(windowScene.statusBarManager?.statusBarFrame.height ?? 0)
+            }
+        }
+        // iOS 13 以下使用旧 API
+        return Int(UIApplication.shared.statusBarFrame.height)
     }
 }

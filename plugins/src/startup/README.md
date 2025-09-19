@@ -1,8 +1,12 @@
-# withCustomAppDelegate 插件使用说明
+# withStartup 插件使用说明
 
 ## 功能描述
 
-`withCustomAppDelegate` 插件允许你自定义 iOS AppDelegate 的启动流程，支持根据用户同意状态显示不同的界面，并可以自定义 HTML 内容。
+`withStartup` 插件允许你自定义 iOS AppDelegate 和 Android Activity 的启动流程，支持根据用户同意状态显示不同的界面，并可以自定义 HTML 内容。
+
+### 支持平台
+- **iOS**: 自动生成和替换 AppDelegate.swift 文件
+- **Android**: 自动创建 StartActivity.java 文件到 Android 工程目录
 
 ## 安装使用
 
@@ -10,11 +14,11 @@
 
 ```javascript
 // app.config.js
-import { withCustomAppDelegate } from "@rainbow_ljy/react-native-plugins";
+import { withStartup } from "@rainbow_ljy/react-native-plugins";
 
 export default {
   name: "expoapp",
-  plugins: [withCustomAppDelegate],
+  plugins: [withStartup],
   // ... 其他配置
 };
 ```
@@ -29,7 +33,7 @@ export default {
   name: "expoapp",
   plugins: [
     [
-      withCustomAppDelegate,
+      withStartup,
       {
         customHtmlContent: `
           <!DOCTYPE html>
@@ -65,7 +69,7 @@ export default {
   name: "expoapp",
   plugins: [
     [
-      withCustomAppDelegate,
+      withStartup,
       {
         customHtmlUrl: "/path/to/your/custom.html"
       }
@@ -147,10 +151,24 @@ export default {
 
 ## 工作流程
 
+### iOS 工作流程
 1. **应用启动** - 检查用户同意状态
 2. **已同意** - 直接启动 React Native
 3. **已拒绝** - 启动限制版 React Native
 4. **未选择** - 显示 HTML 协议页面让用户选择
+
+### Android 工作流程
+1. **应用启动** - StartActivity 检查用户同意状态
+2. **已同意/已拒绝** - 直接启动 MainActivity
+3. **未选择** - 显示 WebView 加载 HTML 协议页面
+4. **用户选择** - 通过 JavaScript 接口调用原生方法启动相应界面
+
+## Android 文件生成
+
+插件会自动在 Android 工程目录下创建 `StartActivity.java` 文件：
+- 文件路径: `android/app/src/main/java/{packageName}/StartActivity.java`
+- 继承自: `com.rainbow.startup.StartupActivity`
+- 自动配置: HTML 内容、React Native 类名等
 
 ## 注意事项
 
